@@ -88,5 +88,9 @@ const app = new CodeWordsAIChatApp({
   hostname: "0.0.0.0",
 });
 
-app.start();
-console.log(`CodeWords AI Chat laeuft auf Port ${process.env.PORT || 3000}`);
+try {
+  app.start();
+  console.log(`==> ERFOLG: CodeWords AI Chat laeuft aktiv auf Port ${railwayPort}`);
+} catch (err) {
+  console.error("==> CRITICAL ERROR beim App-Start:", err);
+}
