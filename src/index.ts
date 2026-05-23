@@ -14,77 +14,60 @@ class CodeWordsAIChatApp extends AppServer {
   private conversationHistory: Map<string, ChatMessage[]> = new Map();
 
   protected async onSession(
-    session: AppSession,
-    sessionId: string,
-    userId: string
-  ): Promise<void> {
-    console.log(`[Session] Neue Session: ${sessionId} fuer User: ${userId}`);
+  session: AppSession,
+  sessionId: string,
+  userId: string
+): Promise<void> {
+  console.log(`[Session] Neue Session: ${sessionId} fuer User: ${userId}`);
+  this.conversationHistory.set(sessionId, []);
 
-    this.conversationHistory.set(sessionId, []);
+  session.layouts.showTextWall(
+    "CodeWords AI\n\nBereit! Sprich einfach mit mir."
+  );
 
-    session.layouts.showTextWall(
-      "CodeWords AI\n\nBereit! Sprich einfach mit mir."
-    );
+  session.events.onTranscription(async (data) => {
+    if (!data.isFinal) return;
+    const userMessage = data.text.trim();
+    if (!userMessage) return;
 
-    session.events.onTranscription(async (data) => {
-      if (!data.isFinal) return;
+    console.log(`[Transkription] User ${userId}: "${userMessage}"`);
+    const history = this.conversationHistory.get(sessionId) || [];
+    session.layouts.showTextWall(`Du: ${userMessage}\n\nDenke nach...`);
+    history.push({ role: "user", content: userMessage });
 
-      const userMessage = data.text.trim();
-      if (!userMessage) return;
-
-      console.log(`[Transkription] User ${userId}: "${userMessage}"`);
-
-      const history = this.conversationHistory.get(sessionId) || [];
-
-      session.layouts.showTextWall(`Du: ${userMessage}\n\nDenke nach...`);
-
-      history.push({ role: "user", content: userMessage });
-
-      try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Du bist ein hilfreicher KI-Assistent auf Even Realities G1 Smart Glasses. " +
-                "Antworte sehr kurz (maximal 2-3 kurze Saetze), da der Text auf kleinen Brillenglaesern angezeigt wird. " +
-                "Sei praezise, direkt und hilfreich.",
-            },
-            ...history.slice(-6),
-          ],
-          max_tokens: 150,
-          temperature: 0.7,
-        });
-
-        const aiResponse =
-          completion.choices[0]?.message?.content ||
-          "Keine Antwort erhalten.";
-
-        console.log(`[AI] Session ${sessionId}: "${aiResponse}"`);
-
-        history.push({ role: "assistant", content: aiResponse });
-        if (history.length > 10) history.splice(0, 2);
-        this.conversationHistory.set(sessionId, history);
-
-        const displayText = `Du: ${userMessage}\n\nAI: ${aiResponse}`;
-        session.layouts.showTextWall(displayText);
-      } catch (error) {
-        console.error(`[Error] OpenAI call failed:`, error);
-        session.layouts.showTextWall(
-          "Fehler beim AI-Aufruf.\nBitte versuche es erneut."
-        );
-      }
-    });
-
-    return new Promise<void>((resolve) => {
-      session.events.onClose(() => {
-        console.log(`[Session] Session ${sessionId} beendet.`);
-        this.conversationHistory.delete(sessionId);
-        resolve();
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Du bist ein hilfreicher KI-Assistent auf Even Realities G1 Smart Glasses. " +
+              "Antworte sehr kurz (maximal 2-3 kurze Saetze), da der Text auf kleinen Brillenglaesern angezeigt wird. " +
+              "Sei praezise, direkt und hilfreich.",
+          },
+          ...history.slice(-6),
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
       });
-    });
-  }
+
+      const aiResponse =
+        completion.choices[0]?.message?.content || "Keine Antwort erhalten.";
+      console.log(`[AI] Session ${sessionId}: "${aiResponse}"`);
+
+      history.push({ role: "assistant", content: aiResponse });
+      if (history.length > 10) history.splice(0, 2);
+      this.conversationHistory.set(sessionId, history);
+
+      session.layouts.showTextWall(`Du: ${userMessage}\n\nAI: ${aiResponse}`);
+    } catch (error) {
+      console.error(`[Error] OpenAI call failed:`, error);
+      session.layouts.showTextWall(
+        "Fehler beim AI-Aufruf.\nBitte versuche es erneut."
+      );
+    }
+  });
 }
 
 process.env.HOST = "0.0.0.0";
