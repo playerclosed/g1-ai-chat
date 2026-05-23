@@ -36,9 +36,7 @@ class CodeWordsAIChatApp extends AppServer {
 
       const history = this.conversationHistory.get(sessionId) || [];
 
-      session.layouts.showTextWall(
-        `Du: ${userMessage}\n\nDenke nach...`
-      );
+      session.layouts.showTextWall(`Du: ${userMessage}\n\nDenke nach...`);
 
       history.push({ role: "user", content: userMessage });
 
@@ -78,14 +76,25 @@ class CodeWordsAIChatApp extends AppServer {
         );
       }
     });
+
+    return new Promise<void>((resolve) => {
+      session.events.onClose(() => {
+        console.log(`[Session] Session ${sessionId} beendet.`);
+        this.conversationHistory.delete(sessionId);
+        resolve();
+      });
+    });
   }
 }
+
+process.env.HOST = "0.0.0.0";
+process.env.HOSTNAME = "0.0.0.0";
 
 const railwayPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 const app = new CodeWordsAIChatApp({
   packageName: process.env.PACKAGE_NAME || "com.player.codewords-ai-chat",
-  apiKey: process.env.MENTRA_API_KEY!,
+  apiKey: process.env.MENTRA_API_KEY || "",
   port: railwayPort,
   hostname: "0.0.0.0",
   serverUrl: "https://g1-ai-chat-production.up.railway.app",
@@ -93,7 +102,7 @@ const app = new CodeWordsAIChatApp({
 
 try {
   app.start();
-  console.log(`==> ERFOLG: CodeWords AI Chat laeuft aktiv auf Port ${railwayPort}`);
+  console.log(`CodeWords AI Chat laeuft auf Port ${railwayPort}`);
 } catch (err) {
-  console.error("==> CRITICAL ERROR beim App-Start:", err);
+  console.error("Critical error on start:", err);
 }
