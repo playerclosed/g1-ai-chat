@@ -88,6 +88,7 @@ const app = new CodeWordsAIChatApp({
   apiKey: process.env.MENTRA_API_KEY!,
   port: railwayPort,
   hostname: "0.0.0.0",
+  serverUrl: "https://g1-ai-chat-production.up.railway.app",
 });
 
 try {
