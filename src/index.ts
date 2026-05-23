@@ -85,6 +85,7 @@ const app = new CodeWordsAIChatApp({
   packageName: process.env.PACKAGE_NAME || "com.player.codewords-ai-chat",
   apiKey: process.env.MENTRA_API_KEY!,
   port: parseInt(process.env.PORT || "3000"),
+  hostname: "0.0.0.0",
 });
 
 app.start();
